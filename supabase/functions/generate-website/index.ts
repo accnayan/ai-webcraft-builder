@@ -9,6 +9,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -20,61 +22,87 @@ serve(async (req) => {
 
     console.log('Generating website for prompt:', prompt);
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'system',
-            content: `You are an expert web developer. Generate complete, functional HTML websites based on user descriptions. 
-            
-            Requirements:
-            - Always create a complete HTML document with DOCTYPE, head, and body
-            - Include modern CSS styling (you can use embedded styles or Tailwind via CDN)
-            - Make it responsive and visually appealing
-            - Include realistic content relevant to the user's request
-            - Use semantic HTML elements
-            - Add interactive elements where appropriate (buttons, forms, etc.)
-            - Include proper meta tags and title
-            - Make sure the code is production-ready and functional
-            
-            Return ONLY the HTML code, no explanations or markdown.`
+    // Retry logic for rate limiting
+    let attempt = 0;
+    const maxAttempts = 3;
+    
+    while (attempt < maxAttempts) {
+      try {
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${openAIApiKey}`,
+            'Content-Type': 'application/json',
           },
-          { role: 'user', content: prompt }
-        ],
-        temperature: 0.7,
-        max_tokens: 4000,
-      }),
-    });
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [
+              {
+                role: 'system',
+                content: `You are an expert web developer. Generate complete, functional HTML websites based on user descriptions. 
+                
+                Requirements:
+                - Always create a complete HTML document with DOCTYPE, head, and body
+                - Include modern CSS styling using Tailwind CSS via CDN
+                - Make it responsive and visually appealing with modern design
+                - Include realistic content relevant to the user's request
+                - Use semantic HTML elements
+                - Add interactive elements where appropriate (buttons, forms, hover effects)
+                - Include proper meta tags, title, and favicon
+                - Add smooth animations and transitions
+                - Use modern color schemes and typography
+                - Make sure the code is production-ready and functional
+                - Include Tailwind CSS CDN link in the head
+                
+                Return ONLY the HTML code, no explanations or markdown.`
+              },
+              { role: 'user', content: prompt }
+            ],
+            temperature: 0.7,
+            max_tokens: 4000,
+          }),
+        });
 
-    if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.status}`);
-    }
+        if (response.status === 429) {
+          attempt++;
+          if (attempt < maxAttempts) {
+            console.log(`Rate limited, retrying in ${2 ** attempt} seconds...`);
+            await delay(2 ** attempt * 1000);
+            continue;
+          }
+          throw new Error('Rate limit exceeded. Please try again in a few minutes.');
+        }
 
-    const data = await response.json();
-    const generatedCode = data.choices[0].message.content;
+        if (!response.ok) {
+          throw new Error(`OpenAI API error: ${response.status} - ${response.statusText}`);
+        }
 
-    console.log('Website generated successfully');
+        const data = await response.json();
+        const generatedCode = data.choices[0].message.content;
 
-    return new Response(
-      JSON.stringify({ 
-        code: generatedCode,
-        language: 'html'
-      }), 
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        console.log('Website generated successfully');
+
+        return new Response(
+          JSON.stringify({ 
+            code: generatedCode,
+            language: 'html'
+          }), 
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      } catch (error) {
+        if (attempt === maxAttempts - 1) {
+          throw error;
+        }
+        attempt++;
       }
-    );
+    }
   } catch (error) {
     console.error('Error in generate-website function:', error);
     return new Response(
       JSON.stringify({ 
-        error: 'Failed to generate website. Please try again.',
+        error: error.message || 'Failed to generate website. Please try again.',
         details: error.message 
       }), 
       {
