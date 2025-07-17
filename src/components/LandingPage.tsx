@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Sparkles, ArrowRight, Code, Zap, Palette, Rocket, Globe, Star, Users, Lightning } from 'lucide-react';
+import { Sparkles, ArrowRight, Code, Zap, Palette, Rocket, Globe, Star, Users } from 'lucide-react';
 
 interface LandingPageProps {
   onBuildWebsite: (prompt: string) => void;
@@ -27,7 +27,7 @@ const LandingPage = ({ onBuildWebsite }: LandingPageProps) => {
 
   const features = [
     {
-      icon: Lightning,
+      icon: Zap,
       title: "Lightning Fast",
       description: "Generate complete websites in under 30 seconds",
       color: "text-yellow-400"
@@ -115,7 +115,7 @@ const LandingPage = ({ onBuildWebsite }: LandingPageProps) => {
                 <div className="flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0">
                   <div className="flex items-center space-x-4 text-sm text-gray-400">
                     <div className="flex items-center space-x-1">
-                      <Lightning className="w-4 h-4 text-yellow-400" />
+                      <Zap className="w-4 h-4 text-yellow-400" />
                       <span>Fast Generation</span>
                     </div>
                     <div className="flex items-center space-x-1">
