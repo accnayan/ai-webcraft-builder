@@ -67,29 +67,39 @@ const WebsiteBuilder = ({ initialPrompt, onBackToLanding }: WebsiteBuilderProps)
     setIsLoading(true);
     
     try {
-      console.log('Calling generate-website function...');
+      console.log('Calling generate-website function with prompt:', prompt.trim());
       
       const { data, error } = await supabase.functions.invoke('generate-website', {
         body: { prompt: prompt.trim() }
       });
+
+      console.log('Function response:', { data, error });
 
       if (error) {
         console.error('Supabase function error:', error);
         throw error;
       }
 
-      if (data.error) {
+      if (data?.error) {
+        console.error('Function returned error:', data.error);
         throw new Error(data.error);
       }
 
-      console.log('Website generated successfully');
+      if (!data?.code) {
+        console.error('No code in response:', data);
+        throw new Error('No code generated in response');
+      }
+
+      console.log('Website generated successfully, code length:', data.code.length);
+      console.log('Generated code preview:', data.code.substring(0, 200) + '...');
+      
       // Start typing effect
       typeCode(data.code);
       setLanguage(data.language || 'html');
       
       toast({
         title: "✨ Website Generated!",
-        description: "Your website has been created successfully. Click preview to see it live!",
+        description: "Your website has been created successfully. Check the preview below!",
       });
     } catch (error) {
       console.error('Error generating website:', error);
@@ -104,6 +114,7 @@ const WebsiteBuilder = ({ initialPrompt, onBackToLanding }: WebsiteBuilderProps)
   };
 
   const handlePreview = () => {
+    console.log('Preview clicked, generatedCode length:', generatedCode?.length || 0);
     if (!generatedCode) {
       toast({
         title: "No Code Generated",
@@ -113,6 +124,7 @@ const WebsiteBuilder = ({ initialPrompt, onBackToLanding }: WebsiteBuilderProps)
       return;
     }
 
+    console.log('Opening preview window with code:', generatedCode.substring(0, 100) + '...');
     const previewWindow = window.open('', '_blank');
     if (previewWindow) {
       previewWindow.document.write(generatedCode);
