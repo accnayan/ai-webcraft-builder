@@ -80,7 +80,15 @@ serve(async (req) => {
         }
 
         const data = await response.json();
-        const generatedCode = data.choices[0].message.content;
+        let generatedCode = data.choices[0].message.content;
+
+        // Clean up the code by removing markdown syntax
+        if (generatedCode.includes('```html')) {
+          generatedCode = generatedCode.replace(/```html\n?/g, '').replace(/```\n?$/g, '');
+        }
+        if (generatedCode.includes('```')) {
+          generatedCode = generatedCode.replace(/```\n?/g, '');
+        }
 
         console.log('Website generated successfully');
 

@@ -17,7 +17,25 @@ const WebsiteBuilder = ({ initialPrompt, onBackToLanding }: WebsiteBuilderProps)
   const [generatedCode, setGeneratedCode] = useState('');
   const [language, setLanguage] = useState('html');
   const [isLoading, setIsLoading] = useState(false);
+  const [typingCode, setTypingCode] = useState('');
   const { toast } = useToast();
+
+  const typeCode = (code: string) => {
+    setTypingCode('');
+    setGeneratedCode('');
+    let index = 0;
+    
+    const typeInterval = setInterval(() => {
+      if (index < code.length) {
+        setTypingCode(prev => prev + code[index]);
+        index++;
+      } else {
+        clearInterval(typeInterval);
+        setGeneratedCode(code);
+        setTypingCode('');
+      }
+    }, 10); // Adjust speed here (lower = faster)
+  };
 
   const handleBuild = async () => {
     if (!prompt.trim()) return;
@@ -41,7 +59,8 @@ const WebsiteBuilder = ({ initialPrompt, onBackToLanding }: WebsiteBuilderProps)
       }
 
       console.log('Website generated successfully');
-      setGeneratedCode(data.code);
+      // Start typing effect
+      typeCode(data.code);
       setLanguage(data.language || 'html');
       
       toast({
@@ -240,7 +259,7 @@ const WebsiteBuilder = ({ initialPrompt, onBackToLanding }: WebsiteBuilderProps)
                 </div>
               </div>
               <div className="h-96">
-                <CodeEditor code={generatedCode} language={language} />
+                <CodeEditor code={typingCode || generatedCode} language={language} />
               </div>
             </div>
           </div>
