@@ -6,6 +6,7 @@ import { ArrowLeft, Code, Eye, Zap, Sparkles, Download, Share, ExternalLink } fr
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import CodeEditor from '@/components/CodeEditor';
+import Preview from '@/components/Preview';
 
 interface WebsiteBuilderProps {
   initialPrompt?: string;
@@ -25,16 +26,39 @@ const WebsiteBuilder = ({ initialPrompt, onBackToLanding }: WebsiteBuilderProps)
     setGeneratedCode('');
     let index = 0;
     
+    // Split code into lines for better visual effect
+    const lines = code.split('\n');
+    let currentLine = 0;
+    let currentChar = 0;
+    
     const typeInterval = setInterval(() => {
-      if (index < code.length) {
-        setTypingCode(prev => prev + code[index]);
-        index++;
+      if (currentLine < lines.length) {
+        if (currentChar < lines[currentLine].length) {
+          // Add character to current line
+          setTypingCode(prev => {
+            const linesPrev = prev.split('\n');
+            if (linesPrev.length <= currentLine) {
+              linesPrev.push('');
+            }
+            linesPrev[currentLine] = lines[currentLine].substring(0, currentChar + 1);
+            return linesPrev.join('\n');
+          });
+          currentChar++;
+        } else {
+          // Move to next line
+          currentLine++;
+          currentChar = 0;
+          if (currentLine < lines.length) {
+            setTypingCode(prev => prev + '\n');
+          }
+        }
       } else {
+        // Typing complete
         clearInterval(typeInterval);
         setGeneratedCode(code);
         setTypingCode('');
       }
-    }, 10); // Adjust speed here (lower = faster)
+    }, 5); // Faster typing for better UX
   };
 
   const handleBuild = async () => {
@@ -241,25 +265,45 @@ const WebsiteBuilder = ({ initialPrompt, onBackToLanding }: WebsiteBuilderProps)
               </div>
             </div>
 
-            {/* Code Editor */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Code className="w-5 h-5 text-purple-400" />
-                  <h2 className="text-xl font-semibold text-white">Generated Code</h2>
+            {/* Code and Preview Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Code Editor */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Code className="w-5 h-5 text-purple-400" />
+                    <h2 className="text-xl font-semibold text-white">Generated Code</h2>
+                    {typingCode && (
+                      <div className="flex items-center space-x-2 text-sm text-purple-400">
+                        <div className="animate-pulse">●</div>
+                        <span>Typing...</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-center space-x-2">
+                <div className="h-96">
+                  <CodeEditor code={typingCode || generatedCode} language={language} />
+                </div>
+              </div>
+
+              {/* Live Preview */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Eye className="w-5 h-5 text-green-400" />
+                    <h2 className="text-xl font-semibold text-white">Live Preview</h2>
+                  </div>
                   <Button
                     onClick={handlePreview}
                     className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white"
                   >
                     <ExternalLink className="w-4 h-4 mr-2" />
-                    Open Preview
+                    Open in New Tab
                   </Button>
                 </div>
-              </div>
-              <div className="h-96">
-                <CodeEditor code={typingCode || generatedCode} language={language} />
+                <div className="h-96">
+                  <Preview code={generatedCode} language={language} />
+                </div>
               </div>
             </div>
           </div>
