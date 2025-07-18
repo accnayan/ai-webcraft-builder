@@ -37,7 +37,7 @@ serve(async (req) => {
             'X-Title': 'Website Builder',
           },
           body: JSON.stringify({
-            model: 'microsoft/codegeex4-all-9b:free',
+            model: 'qwen/qwen-2.5-coder-32b-instruct:free',
             messages: [
               {
                 role: 'system',
